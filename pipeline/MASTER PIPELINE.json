@@ -1,0 +1,271 @@
+{
+	"name": "MASTER PIPELINE",
+	"properties": {
+		"activities": [
+			{
+				"name": "START SYNAPSE",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "RESUME SYNAPSE",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "SET START BATCH TIME",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "START SYNAPSE",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "START_BATCH_TIME",
+					"value": {
+						"value": "@formatDateTime(addhours(utcnow(), 7), 'dd-MM-yyyy HH:mm:ss')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "START BATCH",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "SET START BATCH TIME",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderStoredProcedureName": "[ADF].[proc_etl_start_batch]",
+						"storedProcedureParameters": {
+							"p_batch_type_id": {
+								"type": "Int32",
+								"value": "0"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_DWH_SYNAPSE_ADF",
+						"type": "DatasetReference",
+						"parameters": {
+							"TableName": "A"
+						}
+					}
+				}
+			},
+			{
+				"name": "GET BATCH_ID",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "START BATCH",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "BATCH_ID",
+					"value": {
+						"value": "@string(activity('START BATCH').output.firstrow.AAA)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "END BATCH SUCCESS",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "GET BATCH_ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ADF].[proc_etl_end_batch]",
+					"storedProcedureParameters": {
+						"p_batch_id": {
+							"value": {
+								"value": "@variables('BATCH_ID')",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "REFRESH AS DATASET SUCCESS",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "END BATCH SUCCESS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "REFRESH AS GENERAL",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "PAUSE SYNAPSE SUCCESS",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "REFRESH AS DATASET SUCCESS",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PAUSE SYNAPSE",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "END BATCH FAILED",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "GET BATCH_ID",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[ADF].[proc_etl_end_batch]",
+					"storedProcedureParameters": {
+						"p_batch_id": {
+							"value": {
+								"value": "@variables('BATCH_ID')",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "REFRESH AS DATASET FAILED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "END BATCH FAILED",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "REFRESH AS GENERAL",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "PAUSE SYNAPSE FAILED",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "REFRESH AS DATASET FAILED",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PAUSE SYNAPSE",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"variables": {
+			"BATCH_ID": {
+				"type": "String",
+				"defaultValue": "0"
+			},
+			"CURRENT_DATA_TIME": {
+				"type": "String"
+			},
+			"START_BATCH_TIME": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "VUS MASTER"
+		},
+		"annotations": [],
+		"lastPublishTime": "2021-11-11T16:01:32Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
