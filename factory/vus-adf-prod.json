@@ -1,0 +1,9 @@
+{
+	"name": "vus-adf-prod",
+	"location": "southeastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "4a944ee4-15da-4d12-9743-5b30ce2d3c48",
+		"tenantId": "d1005fc5-bff9-42d5-81e5-1f3fcb089799"
+	}
+}
