@@ -1,0 +1,1823 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "vus-adf-prod"
+		},
+		"LS_DWH_SYNAPSE_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_DWH_SYNAPSE_DEV'"
+		},
+		"LS_STORAGE_ACCOUNT_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_STORAGE_ACCOUNT_DEV'"
+		},
+		"LS_VUS_TQM_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_VUS_TQM_DEV'"
+		},
+		"TQMCONNECTION_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'TQMCONNECTION'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PAUSE SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Azure Synapse State",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'?api-version=2019-06-01-preview')\n",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "Wait 5 seconds",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Get Azure Synapse State",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 5
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Wait 5 seconds",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Azure Synapse State').output.properties.status,'Online')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Pause Azure Synapse",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'/pause?api-version=2019-06-01-preview')\n",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{}",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.core.windows.net/"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscriptions": {
+						"type": "string",
+						"defaultValue": "d607421b-81ca-426a-8942-2fd12f5c9611"
+					},
+					"resourceGroups": {
+						"type": "string",
+						"defaultValue": "DWCLOUD-Prod"
+					},
+					"servers": {
+						"type": "string",
+						"defaultValue": "vus-synapseprod-ws"
+					},
+					"databases": {
+						"type": "string",
+						"defaultValue": "\tVUSDWHPROD"
+					}
+				},
+				"folder": {
+					"name": "AZURE SYNAPSE"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/REFRESH AS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Login",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://login.microsoftonline.com/',pipeline().parameters.TenantID,'/oauth2/token')",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/x-www-form-urlencoded"
+							},
+							"body": {
+								"value": "@concat('grant_type=client_credentials&resource=https://',pipeline().parameters.Region,'.asazure.windows.net&client_id=',pipeline().parameters.ClientID,'&client_secret=',encodeUriComponent(pipeline().parameters.ClientSecret))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "UntilRefreshComplete",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "FilterToCurrentRefresh",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('GetAzureASRefreshStatus').output.status,'inProgress'))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "GetAzureASRefreshStatus",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Wait30Seconds",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes/',activity('FilterToCurrentRefresh').output.Value[0].refreshId)",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {
+											"Authorization": {
+												"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Wait30Seconds",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 30
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "FilterToCurrentRefresh",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetAzureASRefreshes",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@json(activity('GetAzureASRefreshes').output.Response)",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@greaterOrEquals(item().startTime,addseconds(activity('StartProcessingAzureAS').output.startTime,-180))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "StartProcessingAzureAS",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Login",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes')",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Authorization": {
+									"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+									"type": "Expression"
+								}
+							},
+							"body": {
+								"value": "@pipeline().parameters.RefreshRequestBody",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "IfFailed",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "UntilRefreshComplete",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('GetAzureASRefreshStatus').output.status,'failed')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ThrowErrorOnFailure",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@string(activity('GetAzureASRefreshStatus').output)",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetAzureASRefreshes",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "StartProcessingAzureAS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 180,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Authorization": {
+									"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+									"type": "Expression"
+								}
+							},
+							"body": {
+								"Type": "Full",
+								"CommitMode": "transactional",
+								"MaxParallelism": 10,
+								"RetryCount": 2
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"TenantID": {
+						"type": "String",
+						"defaultValue": "3af2f3f2-a318-4004-ae5b-06933eb113c6"
+					},
+					"ClientID": {
+						"type": "String",
+						"defaultValue": "900db92c-9aeb-44e9-8314-0e84a1da11dc"
+					},
+					"ClientSecret": {
+						"type": "String",
+						"defaultValue": "zz6ZcRFP829._-Cs.31H6R4-mI0E6jiMae"
+					},
+					"Region": {
+						"type": "String",
+						"defaultValue": "southeastasia"
+					},
+					"Server": {
+						"type": "String",
+						"defaultValue": "ktcasprod"
+					},
+					"DatabaseName": {
+						"type": "String",
+						"defaultValue": "KTC Model"
+					},
+					"RefreshRequestBody": {
+						"type": "string",
+						"defaultValue": {
+							"Type": "Full",
+							"CommitMode": "transactional",
+							"MaxParallelism": 10,
+							"RetryCount": 2,
+							"Objects": []
+						}
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RESUME AS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "IfAzureASPaused",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "CheckIfAzureASSuspended",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals('Succeeded',string(activity('CheckIfAzureASSuspended').output.properties.state)))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ResumeAzureAS",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'/resume?api-version=2016-05-16')",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "@null",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "CheckIfAzureASSuspended",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'?api-version=2016-05-16')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "UntilAzureASResumed",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "IfAzureASPaused",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals('Succeeded',string(activity('CheckAzureASStatus').output.properties.state))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CheckAzureASStatus",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'?api-version=2016-05-16')",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com"
+										}
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"TenantID": {
+						"type": "String",
+						"defaultValue": "3af2f3f2-a318-4004-ae5b-06933eb113c6"
+					},
+					"SubscriptionID": {
+						"type": "String",
+						"defaultValue": "959c8737-48f3-4137-9de0-6ba42de71200"
+					},
+					"ResourceGroup": {
+						"type": "String",
+						"defaultValue": "ktc-rsg-prod"
+					},
+					"ServerName": {
+						"type": "String",
+						"defaultValue": "ktcasprod"
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RESUME SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Azure Synapse State",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'?api-version=2019-06-01-preview')\n",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "Wait 5 seconds",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Get Azure Synapse State",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 5
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Wait 5 seconds",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Azure Synapse State').output.properties.status,'Paused')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Resume Azure Synapse",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'/resume?api-version=2019-06-01-preview')\n",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{}",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.core.windows.net/"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscriptions": {
+						"type": "string",
+						"defaultValue": "d607421b-81ca-426a-8942-2fd12f5c9611"
+					},
+					"resourceGroups": {
+						"type": "string",
+						"defaultValue": "DWCLOUD-Prod"
+					},
+					"servers": {
+						"type": "string",
+						"defaultValue": "vus-synapseprod-ws"
+					},
+					"databases": {
+						"type": "string",
+						"defaultValue": "VUSDWHPROD"
+					}
+				},
+				"folder": {
+					"name": "AZURE SYNAPSE"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_DWH_SYNAPSE_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_DWH_SYNAPSE_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_STORAGE_ACCOUNT_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_STORAGE_ACCOUNT_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_VUS_TQM_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_VUS_TQM_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/TQMCONNECTION')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('TQMCONNECTION_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUSIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/BLOB_FILE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FOLDER_NAME": {
+						"type": "string"
+					},
+					"FILE_NAME": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().FILE_NAME",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().FOLDER_NAME",
+							"type": "Expression"
+						},
+						"container": "staging"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE_ADF')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "ADF",
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE_STAGING')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "STG",
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DestinationDataset_xdx')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"table": "Azure Blob Storage file"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EXCEL')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FILE_NAME": {
+						"type": "string"
+					},
+					"SHEET_NAME": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SRC_EXCEL"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "RLS",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "BI_RLS.xlsx",
+						"container": "manual"
+					},
+					"firstRowAsHeader": true
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SourceDataset_xdx')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "calendar.csv",
+						"container": "manual"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "DATE_KEY",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_KEY",
+						"type": "String"
+					},
+					{
+						"name": "DATE_NAME",
+						"type": "String"
+					},
+					{
+						"name": "FULL_DATE_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "DAY_SUFFIX",
+						"type": "String"
+					},
+					{
+						"name": "DAY_NAME",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_IN_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_IN_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "MONTH",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_NAME",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "QUARTER_NAME",
+						"type": "String"
+					},
+					{
+						"name": "YEAR",
+						"type": "String"
+					},
+					{
+						"name": "YEAR_NAME",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "MMYYYY",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "IS_WEEKDAY",
+						"type": "String"
+					},
+					{
+						"name": "IS_HOLIDAY_VN",
+						"type": "String"
+					},
+					{
+						"name": "HOLIDAY_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_TYPE",
+						"type": "String"
+					},
+					{
+						"name": "W_INTEGRATION_ID",
+						"type": "String"
+					},
+					{
+						"name": "W_DELETE_FLG",
+						"type": "String"
+					},
+					{
+						"name": "W_INSERT_DT",
+						"type": "String"
+					},
+					{
+						"name": "W_UPDATE_DT",
+						"type": "String"
+					},
+					{
+						"name": "W_DATASOURCE_NUM_ID",
+						"type": "String"
+					},
+					{
+						"name": "W_BATCH_ID",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_App')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "TQMCONNECTION",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"SCHEMA_NAME": {
+						"type": "string"
+					},
+					"TABLE_NAME": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SCHEMA_NAME",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TABLE_NAME",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/TQMCONNECTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_TQM')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_VUS_TQM_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"SCHEMA_NAME": {
+						"type": "string"
+					},
+					"TABLE_NAME": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SCHEMA_NAME",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TABLE_NAME",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_VUS_TQM_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Calendar')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_xdx",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "manual//calendar.csv"
+							},
+							{
+								"name": "Destination",
+								"value": ".Azure Blob Storage file"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings",
+									"skipLineCount": 0
+								}
+							},
+							"sink": {
+								"type": "SqlDWSink",
+								"allowPolyBase": true,
+								"polyBaseSettings": {
+									"rejectValue": 0,
+									"rejectType": "value",
+									"useTypeDefault": true
+								},
+								"tableOption": "autoCreate"
+							},
+							"enableStaging": true,
+							"stagingSettings": {
+								"linkedServiceName": {
+									"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+									"type": "LinkedServiceReference"
+								}
+							},
+							"logSettings": {
+								"enableCopyActivityLog": true,
+								"copyActivityLogSettings": {
+									"logLevel": "Warning",
+									"enableReliableLogging": false
+								},
+								"logLocationSettings": {
+									"linkedServiceName": {
+										"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+										"type": "LinkedServiceReference"
+									}
+								}
+							},
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "DATE_KEY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DATE_KEY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_KEY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_KEY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DATE_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DATE_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FULL_DATE_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FULL_DATE_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_SUFFIX",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_SUFFIX",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_IN_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_IN_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_IN_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_IN_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "QUARTER_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "QUARTER_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "YEAR_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "YEAR_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MMYYYY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MMYYYY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IS_WEEKDAY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IS_WEEKDAY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IS_HOLIDAY_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IS_HOLIDAY_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "HOLIDAY_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "HOLIDAY_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_TYPE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_TYPE",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_INTEGRATION_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_INTEGRATION_ID",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_DELETE_FLG",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_DELETE_FLG",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_INSERT_DT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_INSERT_DT",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_UPDATE_DT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_UPDATE_DT",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_DATASOURCE_NUM_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_DATASOURCE_NUM_ID",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_BATCH_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_BATCH_ID",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceDataset_xdx",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DestinationDataset_xdx",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-25T04:52:18Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SourceDataset_xdx')]",
+				"[concat(variables('factoryId'), '/datasets/DestinationDataset_xdx')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LOAD RLS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Load RLS Config",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ExcelSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "SqlDWSink",
+								"preCopyScript": "truncate table STG.W_RLS_CONF",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EXCEL",
+								"type": "DatasetReference",
+								"parameters": {
+									"FILE_NAME": "competitor_by_region.xlsx",
+									"SHEET_NAME": "Data"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "W_RLS_CONF"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "VUS EXCEL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-11T16:45:49Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/EXCEL')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]"
+			]
+		}
+	]
+}

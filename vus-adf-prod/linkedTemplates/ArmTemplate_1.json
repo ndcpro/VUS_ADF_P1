@@ -1,0 +1,1980 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "vus-adf-prod"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/REFRESH AS GENERAL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get List Refresh",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Start AS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderStoredProcedureName": "[[ADF].[proc_ETL_REFRESH_SSAS]",
+								"storedProcedureParameters": {
+									"group_name": {
+										"type": "String",
+										"value": "All"
+									}
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_REFRESH_SSAS"
+								}
+							}
+						}
+					},
+					{
+						"name": "Set List_Table",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Get List Refresh",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "List_Table",
+							"value": {
+								"value": "@concat(activity('Get List Refresh').output.firstRow.AAA)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Refresh AS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Set List_Table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"RefreshRequestBody": {
+									"value": "@variables('List_Table')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Start AS",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RESUME AS",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"List_Table": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE_DIM')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup_SRC_List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "select JOB_SCRIPT as SRC_LIST, [SOURCE_SCHEMA] as SRC_SCHEMA,[SOURCE_TABLE] as SRC_TBL,  [TARGET_TABLE] as TGT_TBL from [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%DS' and ACTIVE_FLG='Y'\n",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_SRC_List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_SRC_List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set TGT Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "TGT_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get JOB_ID",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "Set TGT Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"sqlReaderQuery": {
+												"value": "@concat('select JOB_ID from [ADF].[ETL_JOB] where TARGET_TABLE=''',variables('TGT_Table'),'''')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "DS_DWH_SYNAPSE_ADF",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": "AAA"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set SRC Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Table",
+										"value": {
+											"value": "@{Item().SRC_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Insert Log Before Load Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Get JOB_ID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Schema",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Start load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Copy data",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Before Load Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "@variables('Source_Script')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "SqlDWSink",
+											"preCopyScript": {
+												"value": "TRUNCATE TABLE [STG].[@{Item().TGT_TBL}]",
+												"type": "Expression"
+											},
+											"disableMetricsCollection": false
+										},
+										"enableStaging": true,
+										"stagingSettings": {
+											"linkedServiceName": {
+												"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adfstagedpolybasetempdata"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "VUS_App",
+											"type": "DatasetReference",
+											"parameters": {
+												"SCHEMA_NAME": "@variables('SRC_Schema')",
+												"TABLE_NAME": "@variables('SRC_Table')"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_DWH_SYNAPSE_STAGING",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Insert Log Load Finish Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Finished load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Insert Log Load Fail Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Load fail table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Update Batch_ID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Load Finish Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_update_batch]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_table_name": {
+												"value": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set SRC Schema",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Schema",
+										"value": {
+											"value": "@{Item().SRC_SCHEMA}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string",
+						"defaultValue": "19000101"
+					}
+				},
+				"variables": {
+					"SOURCE": {
+						"type": "String"
+					},
+					"Source_Script": {
+						"type": "String"
+					},
+					"SRC_Table": {
+						"type": "String"
+					},
+					"TGT_Table": {
+						"type": "String"
+					},
+					"SRC_Schema": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-09-11T07:30:01Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE_FACT')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup_SRC_List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "select JOB_SCRIPT as SRC_LIST, [SOURCE_SCHEMA] as SRC_SCHEMA,[SOURCE_TABLE] as SRC_TBL,  [TARGET_TABLE] as TGT_TBL from [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%FS' and ACTIVE_FLG='Y'\n",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_SRC_List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_SRC_List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set TGT Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "TGT_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get JOB_ID",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "Set TGT Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"sqlReaderQuery": {
+												"value": "@concat('select JOB_ID from [ADF].[ETL_JOB] where TARGET_TABLE=''',variables('TGT_Table'),'''')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "DS_DWH_SYNAPSE_ADF",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": "AAA"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set SRC Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Table",
+										"value": {
+											"value": "@{Item().SRC_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Insert Log Before Load Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Get JOB_ID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Schema",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Start load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Copy data",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Before Load Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "@variables('Source_Script')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "SqlDWSink",
+											"preCopyScript": {
+												"value": "TRUNCATE TABLE [STG].[@{Item().TGT_TBL}]",
+												"type": "Expression"
+											},
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": true,
+										"stagingSettings": {
+											"linkedServiceName": {
+												"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adfstagedpolybasetempdata"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "VUS_App",
+											"type": "DatasetReference",
+											"parameters": {
+												"SCHEMA_NAME": "@variables('SRC_Schema')",
+												"TABLE_NAME": "@variables('SRC_Table')"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_DWH_SYNAPSE_STAGING",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Insert Log Load Finish Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Finished load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Insert Log Load Fail Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Load fail table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Update Batch_ID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Load Finish Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_update_batch]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_table_name": {
+												"value": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set SRC Schema",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Schema",
+										"value": {
+											"value": "@{Item().SRC_SCHEMA}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string",
+						"defaultValue": "19000101"
+					}
+				},
+				"variables": {
+					"SOURCE": {
+						"type": "String"
+					},
+					"Source_Script": {
+						"type": "String"
+					},
+					"SRC_Table": {
+						"type": "String"
+					},
+					"TGT_Table": {
+						"type": "String"
+					},
+					"SRC_Schema": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-09-11T07:29:44Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL_DIM')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup SRC List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT [JOB_SCRIPT] AS [SRC_LIST], [SOURCE_TABLE] AS [SRC_TBL], [TARGET_TABLE] AS [TGT_TBL] \nFROM [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%D' and ACTIVE_FLG='Y'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ADF.ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup SRC List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup SRC List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SIL Store Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Target Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": {
+											"value": "@variables('Source_Script')",
+											"type": "Expression"
+										},
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_target_table": {
+												"value": {
+													"value": "@variables('Target_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set Target Table",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Target_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					},
+					"TGT_TABLE": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Source_Script": {
+						"type": "String"
+					},
+					"Target_Table": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL_FACT')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup SRC List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT [JOB_SCRIPT] AS [SRC_LIST], [SRC_TABLE] AS [SRC_TBL], [TGT_TABLE] AS [TGT_TBL] FROM [ADF].[ETL_DMS_DWH] WHERE [TGT_TABLE] LIKE '%F'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ADF.ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup SRC List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup SRC List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SIL Store Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": {
+											"value": "@variables('Source_Script')",
+											"type": "Expression"
+										},
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Source_Script": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MASTER PIPELINE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "START SYNAPSE",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RESUME SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SET START BATCH TIME",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "START SYNAPSE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "START_BATCH_TIME",
+							"value": {
+								"value": "@formatDateTime(addhours(utcnow(), 7), 'dd-MM-yyyy HH:mm:ss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "START BATCH",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SET START BATCH TIME",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderStoredProcedureName": "[[ADF].[proc_etl_start_batch]",
+								"storedProcedureParameters": {
+									"p_batch_type_id": {
+										"type": "Int32",
+										"value": "0"
+									}
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "A"
+								}
+							}
+						}
+					},
+					{
+						"name": "GET BATCH_ID",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "START BATCH",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "BATCH_ID",
+							"value": {
+								"value": "@string(activity('START BATCH').output.firstrow.AAA)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "END BATCH SUCCESS",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GET BATCH_ID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[ADF].[proc_etl_end_batch]",
+							"storedProcedureParameters": {
+								"p_batch_id": {
+									"value": {
+										"value": "@variables('BATCH_ID')",
+										"type": "Expression"
+									},
+									"type": "Int64"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_DWH_SYNAPSE_DEV",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "REFRESH AS DATASET SUCCESS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "END BATCH SUCCESS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS GENERAL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "PAUSE SYNAPSE SUCCESS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "REFRESH AS DATASET SUCCESS",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "END BATCH FAILED",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GET BATCH_ID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[ADF].[proc_etl_end_batch]",
+							"storedProcedureParameters": {
+								"p_batch_id": {
+									"value": {
+										"value": "@variables('BATCH_ID')",
+										"type": "Expression"
+									},
+									"type": "Int64"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_DWH_SYNAPSE_DEV",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "REFRESH AS DATASET FAILED",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "END BATCH FAILED",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS GENERAL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "PAUSE SYNAPSE FAILED",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "REFRESH AS DATASET FAILED",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "STOP SYNAPSE",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "PAUSE SYNAPSE SUCCESS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "PAUSE SYNAPSE FAILED",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"BATCH_ID": {
+						"type": "String",
+						"defaultValue": "0"
+					},
+					"CURRENT_DATA_TIME": {
+						"type": "String"
+					},
+					"START_BATCH_TIME": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS MASTER"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/REFRESH AS GENERAL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FACT",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "DIM",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE_FACT",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "DIM",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE_DIM",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-29T04:57:11Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE_FACT')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE_DIM')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FACT",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "DIM",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL_FACT",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "DIM",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL_DIM",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL_FACT')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL_DIM')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_ETL_MASTER')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "SDE",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SIL",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "SDE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-22T04:25:07Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL')]"
+			]
+		}
+	]
+}

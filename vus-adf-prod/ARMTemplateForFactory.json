@@ -1,0 +1,3813 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "vus-adf-prod"
+		},
+		"LS_DWH_SYNAPSE_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_DWH_SYNAPSE_DEV'"
+		},
+		"LS_STORAGE_ACCOUNT_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_STORAGE_ACCOUNT_DEV'"
+		},
+		"LS_VUS_TQM_DEV_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_VUS_TQM_DEV'"
+		},
+		"TQMCONNECTION_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'TQMCONNECTION'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/Calendar')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_xdx",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "manual//calendar.csv"
+							},
+							{
+								"name": "Destination",
+								"value": ".Azure Blob Storage file"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings",
+									"skipLineCount": 0
+								}
+							},
+							"sink": {
+								"type": "SqlDWSink",
+								"allowPolyBase": true,
+								"polyBaseSettings": {
+									"rejectValue": 0,
+									"rejectType": "value",
+									"useTypeDefault": true
+								},
+								"tableOption": "autoCreate"
+							},
+							"enableStaging": true,
+							"stagingSettings": {
+								"linkedServiceName": {
+									"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+									"type": "LinkedServiceReference"
+								}
+							},
+							"logSettings": {
+								"enableCopyActivityLog": true,
+								"copyActivityLogSettings": {
+									"logLevel": "Warning",
+									"enableReliableLogging": false
+								},
+								"logLocationSettings": {
+									"linkedServiceName": {
+										"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+										"type": "LinkedServiceReference"
+									}
+								}
+							},
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "DATE_KEY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DATE_KEY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_KEY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_KEY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DATE_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DATE_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FULL_DATE_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FULL_DATE_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_SUFFIX",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_SUFFIX",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_IN_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_IN_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_WEEK_IN_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_WEEK_IN_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "WEEK_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "WEEK_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "QUARTER_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "QUARTER_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "YEAR_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "YEAR_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MONTH_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MONTH_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "MMYYYY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "MMYYYY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_MONTH",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_MONTH",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_QUARTER",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_QUARTER",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FIRST_DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FIRST_DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LAST_DAY_OF_YEAR",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LAST_DAY_OF_YEAR",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IS_WEEKDAY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IS_WEEKDAY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "IS_HOLIDAY_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "IS_HOLIDAY_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "HOLIDAY_VN",
+											"type": "String"
+										},
+										"sink": {
+											"name": "HOLIDAY_VN",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "DAY_TYPE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DAY_TYPE",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_INTEGRATION_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_INTEGRATION_ID",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_DELETE_FLG",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_DELETE_FLG",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_INSERT_DT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_INSERT_DT",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_UPDATE_DT",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_UPDATE_DT",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_DATASOURCE_NUM_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_DATASOURCE_NUM_ID",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "W_BATCH_ID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "W_BATCH_ID",
+											"type": "String"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceDataset_xdx",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DestinationDataset_xdx",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-25T04:52:18Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SourceDataset_xdx')]",
+				"[concat(variables('factoryId'), '/datasets/DestinationDataset_xdx')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LOAD RLS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Load RLS Config",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ExcelSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "SqlDWSink",
+								"preCopyScript": "truncate table STG.W_RLS_CONF",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "EXCEL",
+								"type": "DatasetReference",
+								"parameters": {
+									"FILE_NAME": "competitor_by_region.xlsx",
+									"SHEET_NAME": "Data"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "W_RLS_CONF"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"folder": {
+					"name": "VUS EXCEL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-11T16:45:49Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/EXCEL')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/MASTER PIPELINE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "START SYNAPSE",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RESUME SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "SET START BATCH TIME",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "START SYNAPSE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "START_BATCH_TIME",
+							"value": {
+								"value": "@formatDateTime(addhours(utcnow(), 7), 'dd-MM-yyyy HH:mm:ss')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "START BATCH",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "SET START BATCH TIME",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderStoredProcedureName": "[[ADF].[proc_etl_start_batch]",
+								"storedProcedureParameters": {
+									"p_batch_type_id": {
+										"type": "Int32",
+										"value": "0"
+									}
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "A"
+								}
+							}
+						}
+					},
+					{
+						"name": "GET BATCH_ID",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "START BATCH",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "BATCH_ID",
+							"value": {
+								"value": "@string(activity('START BATCH').output.firstrow.AAA)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "END BATCH SUCCESS",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GET BATCH_ID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[ADF].[proc_etl_end_batch]",
+							"storedProcedureParameters": {
+								"p_batch_id": {
+									"value": {
+										"value": "@variables('BATCH_ID')",
+										"type": "Expression"
+									},
+									"type": "Int64"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_DWH_SYNAPSE_DEV",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "REFRESH AS DATASET SUCCESS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "END BATCH SUCCESS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS GENERAL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "PAUSE SYNAPSE SUCCESS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "REFRESH AS DATASET SUCCESS",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "END BATCH FAILED",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "GET BATCH_ID",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[ADF].[proc_etl_end_batch]",
+							"storedProcedureParameters": {
+								"p_batch_id": {
+									"value": {
+										"value": "@variables('BATCH_ID')",
+										"type": "Expression"
+									},
+									"type": "Int64"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "LS_DWH_SYNAPSE_DEV",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "REFRESH AS DATASET FAILED",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "END BATCH FAILED",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS GENERAL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "PAUSE SYNAPSE FAILED",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "REFRESH AS DATASET FAILED",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "STOP SYNAPSE",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "PAUSE SYNAPSE SUCCESS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "PAUSE SYNAPSE FAILED",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PAUSE SYNAPSE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"BATCH_ID": {
+						"type": "String",
+						"defaultValue": "0"
+					},
+					"CURRENT_DATA_TIME": {
+						"type": "String"
+					},
+					"START_BATCH_TIME": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS MASTER"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/RESUME SYNAPSE')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_ADF')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]",
+				"[concat(variables('factoryId'), '/pipelines/REFRESH AS GENERAL')]",
+				"[concat(variables('factoryId'), '/pipelines/PAUSE SYNAPSE')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PAUSE SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Azure Synapse State",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'?api-version=2019-06-01-preview')\n",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "Wait 5 seconds",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Get Azure Synapse State",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 5
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Wait 5 seconds",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Azure Synapse State').output.properties.status,'Online')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Pause Azure Synapse",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'/pause?api-version=2019-06-01-preview')\n",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{}",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.core.windows.net/"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscriptions": {
+						"type": "string",
+						"defaultValue": "d607421b-81ca-426a-8942-2fd12f5c9611"
+					},
+					"resourceGroups": {
+						"type": "string",
+						"defaultValue": "DWCLOUD-Prod"
+					},
+					"servers": {
+						"type": "string",
+						"defaultValue": "vus-synapseprod-ws"
+					},
+					"databases": {
+						"type": "string",
+						"defaultValue": "\tVUSDWHPROD"
+					}
+				},
+				"folder": {
+					"name": "AZURE SYNAPSE"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/REFRESH AS GENERAL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get List Refresh",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "Start AS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderStoredProcedureName": "[[ADF].[proc_ETL_REFRESH_SSAS]",
+								"storedProcedureParameters": {
+									"group_name": {
+										"type": "String",
+										"value": "All"
+									}
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_REFRESH_SSAS"
+								}
+							}
+						}
+					},
+					{
+						"name": "Set List_Table",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Get List Refresh",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "List_Table",
+							"value": {
+								"value": "@concat(activity('Get List Refresh').output.firstRow.AAA)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Refresh AS",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "Set List_Table",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "REFRESH AS",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"RefreshRequestBody": {
+									"value": "@variables('List_Table')",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Start AS",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "RESUME AS",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"variables": {
+					"List_Table": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_ADF')]",
+				"[concat(variables('factoryId'), '/pipelines/REFRESH AS')]",
+				"[concat(variables('factoryId'), '/pipelines/RESUME AS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/REFRESH AS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Login",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://login.microsoftonline.com/',pipeline().parameters.TenantID,'/oauth2/token')",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Content-Type": "application/x-www-form-urlencoded"
+							},
+							"body": {
+								"value": "@concat('grant_type=client_credentials&resource=https://',pipeline().parameters.Region,'.asazure.windows.net&client_id=',pipeline().parameters.ClientID,'&client_secret=',encodeUriComponent(pipeline().parameters.ClientSecret))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "UntilRefreshComplete",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "FilterToCurrentRefresh",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals(activity('GetAzureASRefreshStatus').output.status,'inProgress'))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "GetAzureASRefreshStatus",
+									"type": "WebActivity",
+									"dependsOn": [
+										{
+											"activity": "Wait30Seconds",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes/',activity('FilterToCurrentRefresh').output.Value[0].refreshId)",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {
+											"Authorization": {
+												"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Wait30Seconds",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 30
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					},
+					{
+						"name": "FilterToCurrentRefresh",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "GetAzureASRefreshes",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@json(activity('GetAzureASRefreshes').output.Response)",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@greaterOrEquals(item().startTime,addseconds(activity('StartProcessingAzureAS').output.startTime,-180))",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "StartProcessingAzureAS",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Login",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes')",
+								"type": "Expression"
+							},
+							"method": "POST",
+							"headers": {
+								"Authorization": {
+									"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+									"type": "Expression"
+								}
+							},
+							"body": {
+								"value": "@pipeline().parameters.RefreshRequestBody",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "IfFailed",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "UntilRefreshComplete",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('GetAzureASRefreshStatus').output.status,'failed')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ThrowErrorOnFailure",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@string(activity('GetAzureASRefreshStatus').output)",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "GetAzureASRefreshes",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "StartProcessingAzureAS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 180,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://',pipeline().parameters.Region,'.asazure.windows.net/servers/',pipeline().parameters.Server,'/models/',pipeline().parameters.DatabaseName,'/refreshes')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {
+								"Authorization": {
+									"value": "@concat(string(activity('Login').output.token_type),' ',string(activity('Login').output.access_token))",
+									"type": "Expression"
+								}
+							},
+							"body": {
+								"Type": "Full",
+								"CommitMode": "transactional",
+								"MaxParallelism": 10,
+								"RetryCount": 2
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"TenantID": {
+						"type": "String",
+						"defaultValue": "3af2f3f2-a318-4004-ae5b-06933eb113c6"
+					},
+					"ClientID": {
+						"type": "String",
+						"defaultValue": "900db92c-9aeb-44e9-8314-0e84a1da11dc"
+					},
+					"ClientSecret": {
+						"type": "String",
+						"defaultValue": "zz6ZcRFP829._-Cs.31H6R4-mI0E6jiMae"
+					},
+					"Region": {
+						"type": "String",
+						"defaultValue": "southeastasia"
+					},
+					"Server": {
+						"type": "String",
+						"defaultValue": "ktcasprod"
+					},
+					"DatabaseName": {
+						"type": "String",
+						"defaultValue": "KTC Model"
+					},
+					"RefreshRequestBody": {
+						"type": "string",
+						"defaultValue": {
+							"Type": "Full",
+							"CommitMode": "transactional",
+							"MaxParallelism": 10,
+							"RetryCount": 2,
+							"Objects": []
+						}
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RESUME AS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "IfAzureASPaused",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "CheckIfAzureASSuspended",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@not(equals('Succeeded',string(activity('CheckIfAzureASSuspended').output.properties.state)))",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "ResumeAzureAS",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'/resume?api-version=2016-05-16')",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "@null",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "CheckIfAzureASSuspended",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'?api-version=2016-05-16')",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "UntilAzureASResumed",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "IfAzureASPaused",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals('Succeeded',string(activity('CheckAzureASStatus').output.properties.state))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "CheckAzureASStatus",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.SubscriptionID,'/resourceGroups/',pipeline().parameters.ResourceGroup,'/providers/Microsoft.AnalysisServices/servers/',pipeline().parameters.ServerName,'?api-version=2016-05-16')",
+											"type": "Expression"
+										},
+										"method": "GET",
+										"headers": {},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.azure.com"
+										}
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"TenantID": {
+						"type": "String",
+						"defaultValue": "3af2f3f2-a318-4004-ae5b-06933eb113c6"
+					},
+					"SubscriptionID": {
+						"type": "String",
+						"defaultValue": "959c8737-48f3-4137-9de0-6ba42de71200"
+					},
+					"ResourceGroup": {
+						"type": "String",
+						"defaultValue": "ktc-rsg-prod"
+					},
+					"ServerName": {
+						"type": "String",
+						"defaultValue": "ktcasprod"
+					}
+				},
+				"folder": {
+					"name": "AZURE AS"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/RESUME SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Get Azure Synapse State",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": {
+								"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'?api-version=2019-06-01-preview')\n",
+								"type": "Expression"
+							},
+							"method": "GET",
+							"headers": {},
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://management.core.windows.net/"
+							}
+						}
+					},
+					{
+						"name": "Wait 5 seconds",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Get Azure Synapse State",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 5
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Wait 5 seconds",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(activity('Get Azure Synapse State').output.properties.status,'Paused')",
+								"type": "Expression"
+							},
+							"ifTrueActivities": [
+								{
+									"name": "Resume Azure Synapse",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"url": {
+											"value": "@concat('https://management.azure.com/subscriptions/',pipeline().parameters.subscriptions,'/resourceGroups/',pipeline().parameters.resourceGroups,'/providers/Microsoft.Synapse/workspaces/',pipeline().parameters.servers,'/sqlPools/',pipeline().parameters.databases,'/resume?api-version=2019-06-01-preview')\n",
+											"type": "Expression"
+										},
+										"method": "POST",
+										"headers": {},
+										"body": {
+											"value": "{}",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": "https://management.core.windows.net/"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"subscriptions": {
+						"type": "string",
+						"defaultValue": "d607421b-81ca-426a-8942-2fd12f5c9611"
+					},
+					"resourceGroups": {
+						"type": "string",
+						"defaultValue": "DWCLOUD-Prod"
+					},
+					"servers": {
+						"type": "string",
+						"defaultValue": "vus-synapseprod-ws"
+					},
+					"databases": {
+						"type": "string",
+						"defaultValue": "VUSDWHPROD"
+					}
+				},
+				"folder": {
+					"name": "AZURE SYNAPSE"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:54Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_ETL_MASTER')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "SDE",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "SIL",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "SDE",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-22T04:25:07Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FACT",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "DIM",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE_FACT",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "DIM",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SDE_DIM",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-08-29T04:57:11Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE_FACT')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SDE_DIM')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE_DIM')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup_SRC_List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "select JOB_SCRIPT as SRC_LIST, [SOURCE_SCHEMA] as SRC_SCHEMA,[SOURCE_TABLE] as SRC_TBL,  [TARGET_TABLE] as TGT_TBL from [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%DS' and ACTIVE_FLG='Y'\n",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_SRC_List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_SRC_List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set TGT Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "TGT_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get JOB_ID",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "Set TGT Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"sqlReaderQuery": {
+												"value": "@concat('select JOB_ID from [ADF].[ETL_JOB] where TARGET_TABLE=''',variables('TGT_Table'),'''')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "DS_DWH_SYNAPSE_ADF",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": "AAA"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set SRC Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Table",
+										"value": {
+											"value": "@{Item().SRC_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Insert Log Before Load Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Get JOB_ID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Schema",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Start load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Copy data",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Before Load Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "@variables('Source_Script')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "SqlDWSink",
+											"preCopyScript": {
+												"value": "TRUNCATE TABLE [STG].[@{Item().TGT_TBL}]",
+												"type": "Expression"
+											},
+											"disableMetricsCollection": false
+										},
+										"enableStaging": true,
+										"stagingSettings": {
+											"linkedServiceName": {
+												"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adfstagedpolybasetempdata"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "VUS_App",
+											"type": "DatasetReference",
+											"parameters": {
+												"SCHEMA_NAME": "@variables('SRC_Schema')",
+												"TABLE_NAME": "@variables('SRC_Table')"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_DWH_SYNAPSE_STAGING",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Insert Log Load Finish Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Finished load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Insert Log Load Fail Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Load fail table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Update Batch_ID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Load Finish Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_update_batch]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_table_name": {
+												"value": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set SRC Schema",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Schema",
+										"value": {
+											"value": "@{Item().SRC_SCHEMA}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string",
+						"defaultValue": "19000101"
+					}
+				},
+				"variables": {
+					"SOURCE": {
+						"type": "String"
+					},
+					"Source_Script": {
+						"type": "String"
+					},
+					"SRC_Table": {
+						"type": "String"
+					},
+					"TGT_Table": {
+						"type": "String"
+					},
+					"SRC_Schema": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-09-11T07:30:01Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_ADF')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/VUS_App')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SDE_FACT')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup_SRC_List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "select JOB_SCRIPT as SRC_LIST, [SOURCE_SCHEMA] as SRC_SCHEMA,[SOURCE_TABLE] as SRC_TBL,  [TARGET_TABLE] as TGT_TBL from [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%FS' and ACTIVE_FLG='Y'\n",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_ADF",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup_SRC_List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup_SRC_List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set TGT Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "TGT_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Get JOB_ID",
+									"type": "Lookup",
+									"dependsOn": [
+										{
+											"activity": "Set TGT Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlDWSource",
+											"sqlReaderQuery": {
+												"value": "@concat('select JOB_ID from [ADF].[ETL_JOB] where TARGET_TABLE=''',variables('TGT_Table'),'''')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"dataset": {
+											"referenceName": "DS_DWH_SYNAPSE_ADF",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": "AAA"
+											}
+										}
+									}
+								},
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set SRC Table",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Table",
+										"value": {
+											"value": "@{Item().SRC_TBL}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Insert Log Before Load Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Get JOB_ID",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										},
+										{
+											"activity": "Set SRC Schema",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Start load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Copy data",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Before Load Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "SqlServerSource",
+											"sqlReaderQuery": {
+												"value": "@variables('Source_Script')",
+												"type": "Expression"
+											},
+											"queryTimeout": "02:00:00",
+											"partitionOption": "None"
+										},
+										"sink": {
+											"type": "SqlDWSink",
+											"preCopyScript": {
+												"value": "TRUNCATE TABLE [STG].[@{Item().TGT_TBL}]",
+												"type": "Expression"
+											},
+											"tableOption": "autoCreate",
+											"disableMetricsCollection": false
+										},
+										"enableStaging": true,
+										"stagingSettings": {
+											"linkedServiceName": {
+												"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+												"type": "LinkedServiceReference"
+											},
+											"path": "adfstagedpolybasetempdata"
+										},
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "VUS_App",
+											"type": "DatasetReference",
+											"parameters": {
+												"SCHEMA_NAME": "@variables('SRC_Schema')",
+												"TABLE_NAME": "@variables('SRC_Table')"
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "DS_DWH_SYNAPSE_STAGING",
+											"type": "DatasetReference",
+											"parameters": {
+												"TableName": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								},
+								{
+									"name": "Insert Log Load Finish Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Finished load table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Insert Log Load Fail Data",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Copy data",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_log_message]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_error_code": {
+												"value": "",
+												"type": "String"
+											},
+											"p_error_message": {
+												"value": "",
+												"type": "String"
+											},
+											"p_job_id": {
+												"value": {
+													"value": "@activity('Get JOB_ID').output.firstRow.JOB_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_log_message": {
+												"value": {
+													"value": "@concat('Load fail table ',variables('TGT_Table'))",
+													"type": "Expression"
+												},
+												"type": "String"
+											},
+											"p_log_status": {
+												"value": "",
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Update Batch_ID",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Insert Log Load Finish Data",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": "[[ADF].[proc_etl_update_batch]",
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_table_name": {
+												"value": {
+													"value": "@variables('TGT_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set SRC Schema",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "SRC_Schema",
+										"value": {
+											"value": "@{Item().SRC_SCHEMA}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string",
+						"defaultValue": "19000101"
+					}
+				},
+				"variables": {
+					"SOURCE": {
+						"type": "String"
+					},
+					"Source_Script": {
+						"type": "String"
+					},
+					"SRC_Table": {
+						"type": "String"
+					},
+					"TGT_Table": {
+						"type": "String"
+					},
+					"SRC_Schema": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-09-11T07:29:44Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_ADF')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]",
+				"[concat(variables('factoryId'), '/datasets/VUS_App')]",
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "FACT",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "DIM",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL_FACT",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "DIM",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "VUS_SIL_DIM",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {
+								"BATCH_ID": {
+									"value": "@pipeline().parameters.BATCH_ID",
+									"type": "Expression"
+								}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL_FACT')]",
+				"[concat(variables('factoryId'), '/pipelines/VUS_SIL_DIM')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL_DIM')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup SRC List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT [JOB_SCRIPT] AS [SRC_LIST], [SOURCE_TABLE] AS [SRC_TBL], [TARGET_TABLE] AS [TGT_TBL] \nFROM [ADF].[ETL_JOB] WHERE [TARGET_TABLE] LIKE '%D' and ACTIVE_FLG='Y'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ADF.ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup SRC List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup SRC List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SIL Store Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Target Table",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": {
+											"value": "@variables('Source_Script')",
+											"type": "Expression"
+										},
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											},
+											"p_target_table": {
+												"value": {
+													"value": "@variables('Target_Table')",
+													"type": "Expression"
+												},
+												"type": "String"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								},
+								{
+									"name": "Set Target Table",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Target_Table",
+										"value": {
+											"value": "@{Item().TGT_TBL}",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					},
+					"TGT_TABLE": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Source_Script": {
+						"type": "String"
+					},
+					"Target_Table": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_SIL_FACT')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Lookup SRC List",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlDWSource",
+								"sqlReaderQuery": "SELECT [JOB_SCRIPT] AS [SRC_LIST], [SRC_TABLE] AS [SRC_TBL], [TGT_TABLE] AS [TGT_TBL] FROM [ADF].[ETL_DMS_DWH] WHERE [TGT_TABLE] LIKE '%F'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_DWH_SYNAPSE_STAGING",
+								"type": "DatasetReference",
+								"parameters": {
+									"TableName": "ADF.ETL_JOB"
+								}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "ForEach",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Lookup SRC List",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Lookup SRC List').output.value",
+								"type": "Expression"
+							},
+							"isSequential": true,
+							"activities": [
+								{
+									"name": "Set Source Script",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "Source_Script",
+										"value": {
+											"value": "@{Item().SRC_LIST}",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "SIL Store Procedure",
+									"type": "SqlServerStoredProcedure",
+									"dependsOn": [
+										{
+											"activity": "Set Source Script",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"storedProcedureName": {
+											"value": "@variables('Source_Script')",
+											"type": "Expression"
+										},
+										"storedProcedureParameters": {
+											"p_batch_id": {
+												"value": {
+													"value": "@pipeline().parameters.BATCH_ID",
+													"type": "Expression"
+												},
+												"type": "Int64"
+											}
+										}
+									},
+									"linkedServiceName": {
+										"referenceName": "LS_DWH_SYNAPSE_DEV",
+										"type": "LinkedServiceReference"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"parameters": {
+					"BATCH_ID": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"Source_Script": {
+						"type": "String"
+					}
+				},
+				"folder": {
+					"name": "VUS_ETL"
+				},
+				"annotations": [],
+				"lastPublishTime": "2021-11-18T14:45:55Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_DWH_SYNAPSE_STAGING')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/BLOB_FILE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FOLDER_NAME": {
+						"type": "string"
+					},
+					"FILE_NAME": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "BLOB"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": {
+							"value": "@dataset().FILE_NAME",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().FOLDER_NAME",
+							"type": "Expression"
+						},
+						"container": "staging"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE_ADF')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "ADF",
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_DWH_SYNAPSE_STAGING')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SYNAPSE"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "STG",
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DestinationDataset_xdx')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_DWH_SYNAPSE_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlDWTable",
+				"schema": [],
+				"typeProperties": {
+					"table": "Azure Blob Storage file"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_DWH_SYNAPSE_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/EXCEL')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FILE_NAME": {
+						"type": "string"
+					},
+					"SHEET_NAME": {
+						"type": "string"
+					}
+				},
+				"folder": {
+					"name": "SRC_EXCEL"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "RLS",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "BI_RLS.xlsx",
+						"container": "manual"
+					},
+					"firstRowAsHeader": true
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SourceDataset_xdx')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_STORAGE_ACCOUNT_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "calendar.csv",
+						"container": "manual"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "DATE_KEY",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_KEY",
+						"type": "String"
+					},
+					{
+						"name": "DATE_NAME",
+						"type": "String"
+					},
+					{
+						"name": "FULL_DATE_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "DAY_SUFFIX",
+						"type": "String"
+					},
+					{
+						"name": "DAY_NAME",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_IN_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_WEEK_IN_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "WEEK_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "MONTH",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_NAME",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "QUARTER_NAME",
+						"type": "String"
+					},
+					{
+						"name": "YEAR",
+						"type": "String"
+					},
+					{
+						"name": "YEAR_NAME",
+						"type": "String"
+					},
+					{
+						"name": "MONTH_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "MMYYYY",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_MONTH",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_QUARTER",
+						"type": "String"
+					},
+					{
+						"name": "FIRST_DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "LAST_DAY_OF_YEAR",
+						"type": "String"
+					},
+					{
+						"name": "IS_WEEKDAY",
+						"type": "String"
+					},
+					{
+						"name": "IS_HOLIDAY_VN",
+						"type": "String"
+					},
+					{
+						"name": "HOLIDAY_VN",
+						"type": "String"
+					},
+					{
+						"name": "DAY_TYPE",
+						"type": "String"
+					},
+					{
+						"name": "W_INTEGRATION_ID",
+						"type": "String"
+					},
+					{
+						"name": "W_DELETE_FLG",
+						"type": "String"
+					},
+					{
+						"name": "W_INSERT_DT",
+						"type": "String"
+					},
+					{
+						"name": "W_UPDATE_DT",
+						"type": "String"
+					},
+					{
+						"name": "W_DATASOURCE_NUM_ID",
+						"type": "String"
+					},
+					{
+						"name": "W_BATCH_ID",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_STORAGE_ACCOUNT_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_App')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "TQMCONNECTION",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"SCHEMA_NAME": {
+						"type": "string"
+					},
+					"TABLE_NAME": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SCHEMA_NAME",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TABLE_NAME",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/TQMCONNECTION')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUS_TQM')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_VUS_TQM_DEV",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"SCHEMA_NAME": {
+						"type": "string"
+					},
+					"TABLE_NAME": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SCHEMA_NAME",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TABLE_NAME",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_VUS_TQM_DEV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_DWH_SYNAPSE_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_DWH_SYNAPSE_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_STORAGE_ACCOUNT_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_STORAGE_ACCOUNT_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_VUS_TQM_DEV')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('LS_VUS_TQM_DEV_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/TQMCONNECTION')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('TQMCONNECTION_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/VUSIR')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		}
+	]
+}
