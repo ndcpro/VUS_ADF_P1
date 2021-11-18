@@ -114,7 +114,7 @@
 			"name": "AZURE SYNAPSE"
 		},
 		"annotations": [],
-		"lastPublishTime": "2021-07-24T04:18:03Z"
+		"lastPublishTime": "2021-11-18T14:34:02Z"
 	},
 	"type": "Microsoft.DataFactory/factories/pipelines"
 }
